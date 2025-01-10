@@ -88,24 +88,14 @@ class ApolloClient(object):
         try:
             if value is None:
                 return None
-            
-            if value in ["true", "True"]:
-                return True
 
-            if value in ["false", "False"]:
-                return False
-            
-            if value in ["null", "undefined"]:
+            value = value.strip()
+            if value.lower() in ["null", "none", "undefined", ""]:
                 return None
-            
-            try:
-                actual_value = eval(value)
-                return actual_value
-            except:
-                actual_value = json.loads(value)
-                return actual_value
+
+            return value
         except:
-            return None
+            return value
 
     def get_value(self, key, default_val=None, namespace='application'):
         try:
@@ -140,6 +130,24 @@ class ApolloClient(object):
             logging.getLogger(__name__).error("get_value has error, [key is %s], [namespace is %s], [error is %s], ",
                                               key, namespace, e)
             return self._convert_type(default_val)
+
+    def get_str(self, key, default_val=None, namespace='application'):
+        return self.get_value(key, default_val, namespace)
+
+    def get_bool(self, key, default_val=None, namespace='application'):
+        value_str = self.get_value(key, default_val, namespace)
+        if value_str is None:
+            return False
+        return value_str.lower() in ["true", "yes", "1"]
+
+    def get_int(self, key, default_val=None, namespace='application'):
+        return int(self.get_value(key, default_val, namespace))
+
+    def get_float(self, key, default_val=None, namespace='application'):
+        return float(self.get_value(key, default_val, namespace))
+
+    def get_json(self, key, default_val=None, namespace='application'):
+        return json.loads(self.get_value(key, default_val, namespace))
 
     # 设置某个namespace的key为none，这里不设置default_val，是为了保证函数调用实时的正确性。
     # 假设用户2次default_val不一样，然而这里却用default_val填充，则可能会有问题。
@@ -187,7 +195,6 @@ class ApolloClient(object):
     def _path_checker(self):
         if not os.path.isdir(self._cache_file_path):
             makedirs_wrapper(self._cache_file_path)
-
 
     # 更新本地缓存和文件缓存
     def _update_cache_and_file(self, namespace_data, namespace='application'):
